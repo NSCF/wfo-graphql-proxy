@@ -1,0 +1,15 @@
+{
+  "name": "wfo-graphql-proxy",
+  "version": "1.0.0",
+  "description": "A REST entry point to the World Flora Online GraphQL API for simple requests, so that we can call it from OpenRefine",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Ian Engelbrecht",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.18.2"
+  }
+}
