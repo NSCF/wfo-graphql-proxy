@@ -2,4 +2,6 @@
 
 As we cannot access the WFO GraphQL endpoint directly from OpenRefine, this utility wraps it in a simple REST API, so that we can fetch accepted names in OpenRefine following a reconciliation with the WFO reconciliation service. 
 
-Simply run `npm install`, and then `node index.js`
+Simply run `npm install`, and then `node index.js`.
+
+To call the API use localhost:3000/wfo/id=[your wfo ID here]

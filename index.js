@@ -1,15 +1,17 @@
 import express  from "express";
+import apicache from 'apicache'
 
 const port = 3000
 const app = express()
+let cache = apicache.middleware
 
 const wfoAPI = 'https://list.worldfloraonline.org/gql.php'
 
 app.get('/', (req, res) => {
-  res.send('Hello World!')
+  res.send('Hi. If you\'d like to call the WFO API, use /wfo?id=[your wfo id]')
 })
 
-app.get('/wfo', (req, res) => {
+app.get('/wfo', cache('2 days'), (req, res) => {
 
   const id = req.query.id
 
