@@ -1,5 +1,8 @@
 import express  from "express";
 import apicache from 'apicache'
+import swaggerUi from 'swagger-ui-express'
+import YAML from 'yamljs'
+import { getNameMatch } from "./funcs.js";
 
 const port = 3000
 const app = express()
@@ -7,7 +10,87 @@ let cache = apicache.middleware
 
 const wfoAPI = 'https://list.worldfloraonline.org/gql.php'
 
-app.get('/:wfoid?', (req, res) => {
+const swaggerDoc = YAML.load('./swagger.yaml')
+
+app.get('/suggest', cache(), async (req, res) => {
+
+  if (!req.query.search || ! req.query.search.trim()) {
+    res.status(400).send('A partial name search string is required')
+  }
+  else {
+    
+    const qry = `
+      query {
+        taxonNameSuggestion(termsString: "${req.query.search.trim()}") {
+          id,
+          fullNameStringPlain,
+          role, 
+          authorsString,
+          nomenclaturalStatus,
+        }
+      }
+    `
+    try {
+      const gqlres = await fetch(wfoAPI, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: qry 
+        }),
+      })
+
+      if (gqlres.status == 200) {
+        const { data } = await gqlres.json()
+        console.log(req.method, req.url, 200)
+        res.json(data)
+      }
+      else {
+        const errorBody = await gqlres.text();
+        console.log(req.method, req.url, gqlres.status)
+        res.status(gqlres.status).send(errorBody)
+      }
+
+    }
+    catch(err) {
+      console.log(req.method, req.url, 500)
+      res.status(500).send(err.message)
+    }
+  }
+
+})
+
+/**
+ * @openapi
+ * /match:
+ *  get:
+ *    description: Get name matches
+ *    responses:
+ *      200:
+ *        description
+ */
+app.get('/match', cache(), async (req, res) => {
+
+  if (!req.query.name || ! req.query.name.trim()) {
+    res.status(400).send('A name is required')
+  }
+  else {
+
+    try {
+      const result = await getNameMatch(req.query.name, req.query['exclude-deprecated'])
+      console.log(req.method, req.url, result.status)
+      res.statusMessage = result.message;
+      res.status(result.status).json(result.results)
+    }
+    catch(err) {
+      console.log(req.method, req.url, 500, err.message)
+      res.status(500).send(err.message)
+    }
+    
+  }
+})
+
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDoc))
+
+app.get('/:wfoid', cache(), async (req, res) => {
 
   if (!req.params.wfoid) {
     res.send('Hi. If you\'d like to call the WFO API, use /wfoid, e.g. /wfo-')
@@ -16,19 +99,20 @@ app.get('/:wfoid?', (req, res) => {
     res.status(400).send('Oops, invalid WFO ID! Please try again')
   }
   else {
-    console.log(req.method, req.path)
 
     const qry = `
       query {
         taxonNameById(nameId: "${req.params.wfoid}") {
           id, 
           fullNameStringPlain,
+          authorsString,
           nomenclaturalStatus,
           currentPreferredUsage {
             hasName {
               id,
               fullNameStringPlain,
-              authorsString
+              authorsString,
+              nomenclaturalStatus
             },
             isPartOf {
               hasName {
@@ -40,31 +124,56 @@ app.get('/:wfoid?', (req, res) => {
       }
     `
 
-    fetch(wfoAPI, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ query: qry 
-      }),
-    })
-    .then(gqlres => gqlres.json())
-    .then(({ data }) => {  
-      
-      let record = data.taxonNameById
-      const returnRecord = {
-        nameID: record.id,
-        fullName: record.fullNameStringPlain,
-        status: record.nomenclaturalStatus,
-        acceptedNameID: record.currentPreferredUsage?.hasName?.id || null,
-        acceptedName: record.currentPreferredUsage?.hasName?.fullNameStringPlain || null,
+    try {
+
+      const gqlres = await fetch(wfoAPI, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: qry 
+        }),
+      })
+
+      if (gqlres.status == 200) {
+        const { data } = await gqlres.json()
+
+        if (req.query.raw == 'true') {
+          console.log(req.method, req.url, 200)
+          res.json(data)
+        }
+        else {
+          let record = data.taxonNameById
+          const returnRecord = {
+            nameID: record.id,
+            fullName: record.fullNameStringPlain,
+            author: record.authorsString,
+            status: record.nomenclaturalStatus,
+            acceptedNameID: record.currentPreferredUsage?.hasName?.id || null,
+            acceptedName: record.currentPreferredUsage?.hasName?.fullNameStringPlain || null,
+            acceptedNameAuthor: record.currentPreferredUsage?.hasName?.authorsString || null
+          }
+
+          console.log(req.method, req.url, 200)
+          res.json(returnRecord)
+
+        }
       }
-      
-      res.json(returnRecord)
-    });
+      else {
+        const errorBody = await gqlres.text();
+        console.log(req.method, req.url, gqlres.status)
+        res.send(gqlres.status).send(errorBody)
+      }
+    }
+    catch(err) {
+      console.log(req.method, req.url, 500)
+      res.status(500).send(err.message)
+    }
 
   }
 
 })
 
+
+
 app.listen(port, () => {
-  console.log(`Example app listening on port ${port}`)
+  console.log(`WFO GraphQL API proxy running on http://localhost:${port}`)
 })

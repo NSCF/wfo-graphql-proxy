@@ -1,0 +1,39 @@
+openapi: 3.0.0
+info:
+  title: Name Matching API
+  description: API that returns matched names based on a query string parameter.
+  version: 1.0.0
+
+paths:
+  /matchnames:
+    get:
+      summary: Match names based on a query parameter
+      description: Returns a list of matched names and their scores based on the provided query string parameter `name`.
+      parameters:
+        - in: query
+          name: name
+          required: true
+          schema:
+            type: string
+          description: The name to match against.
+      responses:
+        '200':
+          description: A list of matched names with their respective scores.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: string
+                      description: A unique identifier for the matched entity.
+                    matchedName:
+                      type: string
+                      description: The name that was matched.
+                    score:
+                      type: number
+                      description: The similarity score for the matched name (higher is better).
+        '400':
+          description: Invalid query parameter.
