@@ -1,13 +1,15 @@
 import levenshtein from "js-levenshtein";
+import graphQLTaxonNameFields from './utils/graphQLTaxonNameFieldsString.js'
+import mapGraphQLTaxonName from './utils/mapGraphQLTaxonName.js'
 
 const wfoAPI = 'https://list.worldfloraonline.org/gql.php'
 
 /**
- * 
+ * Get name matches from WFO GraphQL API
  * @param {string} namestring The name to find matches for
- * @returns {[]}
+ * @returns {{status: string, message: string, results: MatchedMappedWFOTaxonName[]}} 
  */
-export async function getNameMatch(namestring, excludeDeprecated) {
+export async function getWFONameMatch(namestring) {
   
   namestring = namestring.trim().replace(/\s+/, ' ')
 
@@ -19,51 +21,19 @@ export async function getNameMatch(namestring, excludeDeprecated) {
     query {
       taxonNameMatch(inputString: "${namestring}", checkHomonyms: true) {
         candidates {
-          id,
-          fullNameStringPlain,
-          role, 
-          authorsString,
-          nomenclaturalStatus,
+          ${graphQLTaxonNameFields}
         }
       }
     }
   `
+  let gqlres
   try {
-    const gqlres = await fetch(wfoAPI, {
+    gqlres = await fetch(wfoAPI, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ query: qry 
       }),
     })
-
-    if (gqlres.status == 200) {
-      const { data } = await gqlres.json()
-      let results = data.taxonNameMatch.candidates
-      if (excludeDeprecated) {
-        results = results.filter(taxon => taxon.nomenclaturalStatus != 'deprecated')
-      }
-      results = results.map(taxon => {
-        const levdist = levenshtein(namestring, taxon.fullNameStringPlain)
-        const perc = Math.round((1 - levdist/Math.max(namestring.length, taxon.fullNameStringPlain.length)) * 100)
-        taxon.score = perc
-        return taxon
-      })
-
-      return {
-        status: 200,
-        message: gqlres.statusText,
-        results
-      }
-    }
-    else {
-      return {
-        status: gqlres.status,
-        message: gqlres.statusText,
-        results: []
-      }
-      
-    }
-
   }
   catch(err) {
     return {
@@ -72,4 +42,44 @@ export async function getNameMatch(namestring, excludeDeprecated) {
       results: []
     }
   }
+
+  if (gqlres.status == 200) {
+    const { data } = await gqlres.json()
+
+    /**
+     * @type {WFOTaxon[]}
+     */
+    let results = data.taxonNameMatch.candidates
+    if (excludeDeprecated) {
+      results = results.filter(taxon => taxon.role != 'deprecated')
+    }
+    
+    /**
+     * @type {MatchedMappedWFOTaxonName[]}
+     */
+    const mappedResults = results.map(taxon => {
+      
+      const levdist = levenshtein(namestring, taxon.fullNameStringPlain)
+      const perc = Math.round((1 - levdist/Math.max(namestring.length, taxon.fullNameStringPlain.length)) * 100)
+      
+      return {
+        wfoTaxon: mapGraphQLTaxonName(taxon),
+        score: perc
+      }
+    })
+
+    return {
+      status: 200,
+      message: gqlres.statusText,
+      results: mappedResults
+    }
+  }
+  else {
+    return {
+      status: gqlres.status,
+      message: gqlres.statusText,
+      results: []
+    }
+  }
 }
+

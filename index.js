@@ -58,15 +58,6 @@ app.get('/suggest', cache(), async (req, res) => {
 
 })
 
-/**
- * @openapi
- * /match:
- *  get:
- *    description: Get name matches
- *    responses:
- *      200:
- *        description
- */
 app.get('/match', cache(), async (req, res) => {
 
   if (!req.query.name || ! req.query.name.trim()) {
@@ -90,7 +81,7 @@ app.get('/match', cache(), async (req, res) => {
 
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDoc))
 
-app.get('/:wfoid', cache(), async (req, res) => {
+app.get('/names/:wfoid', cache(), async (req, res) => {
 
   if (!req.params.wfoid) {
     res.send('Hi. If you\'d like to call the WFO API, use /wfoid, e.g. /wfo-')
@@ -103,23 +94,7 @@ app.get('/:wfoid', cache(), async (req, res) => {
     const qry = `
       query {
         taxonNameById(nameId: "${req.params.wfoid}") {
-          id, 
-          fullNameStringPlain,
-          authorsString,
-          nomenclaturalStatus,
-          currentPreferredUsage {
-            hasName {
-              id,
-              fullNameStringPlain,
-              authorsString,
-              nomenclaturalStatus
-            },
-            isPartOf {
-              hasName {
-                fullNameStringPlain
-              }
-            }
-          }
+          
         }
       }
     `
@@ -136,26 +111,19 @@ app.get('/:wfoid', cache(), async (req, res) => {
       if (gqlres.status == 200) {
         const { data } = await gqlres.json()
 
-        if (req.query.raw == 'true') {
-          console.log(req.method, req.url, 200)
-          res.json(data)
+        let record = data.taxonNameById
+        const returnRecord = {
+          WFOID: record.id,
+          fullName: record.fullNameStringPlain,
+          author: record.authorsString,
+          status: record.role,
+          acceptedNameID: record.currentPreferredUsage?.hasName?.id || null,
+          acceptedName: record.currentPreferredUsage?.hasName?.fullNameStringPlain || null,
+          acceptedNameAuthor: record.currentPreferredUsage?.hasName?.authorsString || null
         }
-        else {
-          let record = data.taxonNameById
-          const returnRecord = {
-            nameID: record.id,
-            fullName: record.fullNameStringPlain,
-            author: record.authorsString,
-            status: record.nomenclaturalStatus,
-            acceptedNameID: record.currentPreferredUsage?.hasName?.id || null,
-            acceptedName: record.currentPreferredUsage?.hasName?.fullNameStringPlain || null,
-            acceptedNameAuthor: record.currentPreferredUsage?.hasName?.authorsString || null
-          }
 
-          console.log(req.method, req.url, 200)
-          res.json(returnRecord)
-
-        }
+        console.log(req.method, req.url, 200)
+        res.json(returnRecord)
       }
       else {
         const errorBody = await gqlres.text();
