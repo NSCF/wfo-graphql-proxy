@@ -3,7 +3,7 @@ const graphQLTaxonNameFields = `
   stableUri,
   classificationId,
   fullNameStringPlain,
-  fullNameStringHTML,
+  fullNameStringHtml,
   authorsString,
   role, 
   rank,
