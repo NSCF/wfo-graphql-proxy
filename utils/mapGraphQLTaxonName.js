@@ -2,7 +2,7 @@
 
 /**
  * Mapped a taxon name record returned from the WFO GraphQL API to something simpler
- * @param {WFOTaxon} record A taxon name record returned from the WFO GraphQL API
+ * @param {WFOTaxonName} record A taxon name record returned from the WFO GraphQL API
  * @returns {MappedWFOTaxonName}
  */
 function mapGraphQLResult(record) {
@@ -13,7 +13,8 @@ function mapGraphQLResult(record) {
     fullName: record.fullNameStringPlain,
     fullNameHTML: record.fullNameStringHTML,
     author: record.authorsString,
-    status: record.role,
+    taxonomicStatus: record.role,
+    nomenclaturalStatus: record.nomenclaturalStatus, 
     rank: record.rank,
     comments: record.comment,
     citation: record.citationMicro,
@@ -24,12 +25,6 @@ function mapGraphQLResult(record) {
     acceptedNameAuthor: record.currentPreferredUsage?.hasName?.authorsString || null,
     acceptedNameRank: record.currentPreferredUsage?.hasName?.rank || null,
     acceptedNameStatus: record.currentPreferredUsage?.hasName?.role || null,
-    parentNameID: record.isPartOf?.hasName?.id || null,
-    parentName: record.isPartOf?.hasName?.fullNameStringPlain || null,
-    parentCanonicalName: record.isPartOf?.hasName?.fullNameStringNoAuthorsPlain || null,
-    parentAuthor: record.isPartOf?.hasName?.authorsString || null,
-    parentRank: record.isPartOf?.hasName?.rank || null,
-    parentStatus: record.isPartOf?.hasName?.role || null
   }
 }
 

@@ -30,7 +30,7 @@
  */
 
 /**
- * @typedef {Object} WFOTaxon
+ * @typedef {Object} WFOTaxonName
  * @property {string} id - The WFO identifier of the taxon.
  * @property {string} stableUri - The stable URI for the taxon.
  * @property {string} classificationId - The classification ID for the taxon.
@@ -38,6 +38,7 @@
  * @property {string} fullNameStringHTML - The full name of the taxon in HTML format.
  * @property {string} authorsString - The authors of the taxon name.
  * @property {string} role - The taxonomic status of the name.
+ * @property {string} nomenclaturalStatus - The nomenclatural status of the name
  * @property {string} rank - The rank of the taxon name.
  * @property {string} comment - Any comments associated with the taxon.
  * @property {string} citationMicro - The abbreviated citation string of the taxon.
@@ -60,7 +61,8 @@
  * @property {string} fullName - The full plain-text name of the name.
  * @property {string} fullNameHTML - The full HTML-formatted name of the name.
  * @property {string} author - The author/s of the name.
- * @property {string} status - The taxonomic status of the name.
+ * @property {string} taxonomicStatus - The taxonomic status of the name.
+ * @property {string} nomenclaturalStatus - The nomenclatural status of the name.
  * @property {string} rank - The rank of the name.
  * @property {string} comments - Comments associated with the name.
  * @property {string} citation - The abbreviated citation string of the name.
@@ -71,12 +73,6 @@
  * @property {string|null} acceptedNameAuthor - The author/s of the accepted name.
  * @property {string|null} acceptedNameRank - The rank of the accepted name.
  * @property {string|null} acceptedNameStatus - The taxonomic status of the accepted name.
- * @property {string|null} parentNameID - The WFO ID of the parent taxon name.
- * @property {string|null} parentName - The full parent name with authorship.
- * @property {string|null} parentCanonicalName - The parent name, without author/s.
- * @property {string|null} parentAuthor - The author/s of the parent name.
- * @property {string|null} parentRank - The taxonomic rank of the parent name.
- * @property {string|null} parentStatus - The taxonomic status of the parent name.
  */
 
 /**
