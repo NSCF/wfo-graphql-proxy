@@ -18,6 +18,9 @@ export async function getWFONameMatch(namestring, excludeDeprecated, url) {
   const qry = `
     query {
       taxonNameMatch(inputString: "${namestring}", checkHomonyms: true) {
+        match {
+          ${graphQLTaxonNameFields}
+        },
         candidates {
           ${graphQLTaxonNameFields}
         }
@@ -44,10 +47,11 @@ export async function getWFONameMatch(namestring, excludeDeprecated, url) {
   if (gqlres.status == 200) {
     const { data } = await gqlres.json()
 
+    // we have to include the match also as this is where the 100% match is stored...
     /**
      * @type {WFOTaxon[]}
      */
-    let results = data.taxonNameMatch.candidates
+    let results = [data.taxonNameMatch.match, ...data.taxonNameMatch.candidates].filter(x => x) // filtered in match is null
     if (excludeDeprecated) {
       results = results.filter(taxon => taxon.role != 'deprecated')
     }
@@ -65,6 +69,9 @@ export async function getWFONameMatch(namestring, excludeDeprecated, url) {
         score: perc
       }
     })
+
+    //sort on scores
+    mappedResults.sort((a, b) => a.score - b.score)
 
     return {
       status: 200,
