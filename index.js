@@ -13,8 +13,9 @@ app.get('/', (req, res) => {
 
 app.get('/wfo', cache('2 days'), (req, res) => {
 
-  const id = req.query.id
+  console.log(req.originalUrl)
 
+  const id = req.query.id
 
   if (id && /^wfo-\d{10}$/.test(id)) {
 
