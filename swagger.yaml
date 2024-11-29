@@ -1,0 +1,125 @@
+openapi: 3.0.0
+info:
+  title: Simple WFO REST API
+  description: A simple REST interface on top of the WFO GraphQL API, for anyone who needs it.
+  version: 1.0.0
+
+components:
+  schemas:
+    NameRecord:
+
+paths:
+  /names/{wfoid}:
+    get:
+      summary: Get name by WFO ID
+      description: Fetch a name record using its WFO ID
+      parameters:
+        - in: path
+          name: wfoi
+          required: true
+          schema:
+            type: string
+          description: The WFO ID of the name to fetch
+      responses:
+        '200':
+          description: Successful response with the details of the name
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    description: The ID of the name
+                  name:
+                    type: string
+                    description: The name itself
+                  description:
+                    type: string
+                    description: Additional information about the name
+        '404':
+          description: Name ID not found
+        '500':
+          description: Internal server error
+  /match:
+    get:
+      summary: Match WFO names
+      description: Returns a list of matched names and their scores based on the provided query string parameter `name`.
+      parameters:
+        - in: query
+          name: name
+          required: true
+          schema:
+            type: string
+          description: The name to match against.
+      responses:
+        '200':
+          description: A list of matched names with their metadata and respective scores.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: string
+                      description: The WFO ID for the name.
+                    stableUri:
+                      type: string
+                      description: A URI to the human readable web page for this resource.
+                    classificationId:
+                      type: string
+                      description: The ID of the classification this name belongs to e.g. 2022-12
+                    fullNameStringPlain:
+                      type: string
+                      description: The name that was matched in plain text.
+                    fullNameStringHTML:
+                      type: string
+                      description: The name string in HTML for proper display with relevants parts in italics.
+                    authorString:
+                      type: string
+                      description: The authors string in plain text
+                    role:
+                      type: string
+                      description: The role this name plays in the classification, i.e. accepted, synonym, unplaced (needs to be reviewed by a taxonomist), deprecated (names that should not be used for some technical reason, e.g. duplication)
+                    rank:
+                      type: string
+                      description: The published taxonomic rank of this name
+                    comment:
+                      type: string
+                      description: Notes/comments about this name
+                    citationMicro:
+                      type: string
+                      description: The publication string for the name in the form of a microcitation as used in floras and monographs
+                    identifiersOther:
+                      type: array
+                      description: Other identifiers used for this name
+                      items:
+                        type: object
+                        properties:
+                          kind:
+                            type: string
+                            description: The kind of identifier
+                          value:
+                            type: string
+                            description: The identifier
+                    wfoIdsDeduplicated:
+                      type: array
+                      description: WFO IDs that have been deduplicated into this name
+                      items:
+                        type: string
+                    currentPreferredUsage:
+                      type: object
+                      description: The current accepted name/taxon for the returned name
+                      properties:
+                        hasName:
+                          type: object
+                          description: 
+
+                    score:
+                      type: number
+                      description: The similarity score for the matched name (standardized Levenshtein distance, higher is better).
+        '400':
+          description: Invalid query parameter.
+  
