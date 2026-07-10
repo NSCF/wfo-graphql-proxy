@@ -5,8 +5,8 @@ const graphQLTaxonNameFields = `
   fullNameStringPlain,
   fullNameStringHtml,
   authorsString,
-  role,
-  nomenclaturalStatus, 
+  role, 
+  nomenclaturalStatus,
   rank,
   comment,
   citationMicro
@@ -26,8 +26,10 @@ const graphQLTaxonNameFields = `
     isPartOf {
       hasName {
         id,
+        fullNameStringPlain,
         fullNameStringNoAuthorsPlain,
         authorsString,
+        rank,
         role
       }
     }

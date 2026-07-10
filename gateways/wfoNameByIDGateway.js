@@ -1,7 +1,7 @@
-import graphQLTaxonNameFields from '../utils/graphQLTaxonNameFieldsString.js'
-import mapGraphQLTaxonName from '../utils/mapGraphQLTaxonName.js'
+import graphQLTaxonNameFields from './graphQLTaxonNameFieldsString.js'
+import mapGraphQLTaxonName from '../adapters/mapGraphQLTaxonName.js'
 
-export async function getWFONameByID(wfoID, url) {
+export async function fetchWFONameByID(wfoID, url) {
   
   wfoID = wfoID?.trim().replace(/\s+/, ' ')
 
@@ -42,6 +42,13 @@ export async function getWFONameByID(wfoID, url) {
     const { data } = await gqlres.json()
 
     let record = data.taxonNameById
+    if (!record) {
+      return {
+        status: 404,
+        message: 'WFO name not found',
+        results: null
+      }
+    }
     let returnRecord = mapGraphQLTaxonName(record)
 
     return {
@@ -53,7 +60,7 @@ export async function getWFONameByID(wfoID, url) {
   else {
     const errorBody = await gqlres.text();
     return {
-      status: 500,
+      status: gqlres.status || 500,
       message: 'error fetching WFO name',
       results: errorBody
     }

@@ -1,6 +1,6 @@
 import levenshtein from "js-levenshtein";
-import graphQLTaxonNameFields from '../utils/graphQLTaxonNameFieldsString.js'
-import mapGraphQLTaxonName from '../utils/mapGraphQLTaxonName.js'
+import graphQLTaxonNameFields from './graphQLTaxonNameFieldsString.js'
+import mapGraphQLTaxonName from '../adapters/mapGraphQLTaxonName.js'
 
 /**
  * Get name matches from WFO GraphQL API
@@ -18,6 +18,9 @@ export async function getWFONameMatch(namestring, excludeDeprecated, url) {
   const qry = `
     query {
       taxonNameMatch(inputString: "${namestring}", checkHomonyms: true) {
+        match {
+          ${graphQLTaxonNameFields}
+        }
         candidates {
           ${graphQLTaxonNameFields}
         }
@@ -43,11 +46,33 @@ export async function getWFONameMatch(namestring, excludeDeprecated, url) {
 
   if (gqlres.status == 200) {
     const { data } = await gqlres.json()
+    const matchRes = data?.taxonNameMatch
+    if (!matchRes) {
+      return {
+        status: 404,
+        message: 'No match results returned from WFO API',
+        results: []
+      }
+    }
 
-    /**
-     * @type {WFOTaxon[]}
-     */
-    let results = data.taxonNameMatch.candidates
+    const seenIds = new Set()
+    const rawResults = []
+
+    if (matchRes.match) {
+      rawResults.push(matchRes.match)
+      seenIds.add(matchRes.match.id)
+    }
+
+    if (Array.isArray(matchRes.candidates)) {
+      for (const candidate of matchRes.candidates) {
+        if (candidate && !seenIds.has(candidate.id)) {
+          rawResults.push(candidate)
+          seenIds.add(candidate.id)
+        }
+      }
+    }
+
+    let results = rawResults
     if (excludeDeprecated) {
       results = results.filter(taxon => taxon.role != 'deprecated')
     }

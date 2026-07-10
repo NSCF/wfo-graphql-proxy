@@ -1,112 +1,52 @@
-import express  from "express";
-import apicache from 'apicache'
-// import swaggerUi from 'swagger-ui-express'
-// import YAML from 'yamljs'
-import { getWFONameMatch } from "./wfo/wfoMatchAdapter.js";
-import { getWFONameByID } from './wfo/wfoNameByIDAdapter.js'
+// TODO: Remove this bypass once World Flora Online (WFO) corrects their SSL certificate chain
+// on list.worldfloraonline.org (missing intermediate certificate).
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 
-const port = 3000
-const app = express()
-let cache = apicache.middleware
+import express from "express";
+import apicache from 'apicache';
+import { getWFONameByID, getWFONameMatch } from "./controllers/index.js";
 
-const wfoAPI = 'https://list.worldfloraonline.org/gql.php'
+const port = 3000;
+const app = express();
+let cache = apicache.middleware;
 
-// const swaggerDoc = YAML.load('./swagger.yaml')
-
-// app.get('/suggest', cache(), async (req, res) => {
-
-//   if (!req.query.search || ! req.query.search.trim()) {
-//     res.status(400).send('A partial name search string is required')
-//   }
-//   else {
-    
-//     const qry = `
-//       query {
-//         taxonNameSuggestion(termsString: "${req.query.search.trim()}") {
-//           id,
-//           fullNameStringPlain,
-//           role, 
-//           authorsString,
-//           nomenclaturalStatus,
-//         }
-//       }
-//     `
-//     try {
-//       const gqlres = await fetch(wfoAPI, {
-//         method: 'POST',
-//         headers: { 'Content-Type': 'application/json' },
-//         body: JSON.stringify({ query: qry 
-//         }),
-//       })
-
-//       if (gqlres.status == 200) {
-//         const { data } = await gqlres.json()
-//         console.log(req.method, req.url, 200)
-//         res.json(data)
-//       }
-//       else {
-//         const errorBody = await gqlres.text();
-//         console.log(req.method, req.url, gqlres.status)
-//         res.status(gqlres.status).send(errorBody)
-//       }
-
-//     }
-//     catch(err) {
-//       console.log(req.method, req.url, 500)
-//       res.status(500).send(err.message)
-//     }
-//   }
-
-// })
-
-app.get('/match', cache(), async (req, res) => {
-
-  if (!req.query.name || ! req.query.name.trim()) {
-    res.status(400).send('A name is required')
-  }
-  else {
-
+// Express adapter to convert clean architecture controllers to route handlers
+function makeExpressCallback(controller) {
+  return async (req, res) => {
+    const httpRequest = {
+      body: req.body,
+      query: req.query,
+      params: req.params,
+      ip: req.ip,
+      method: req.method,
+      path: req.path,
+      headers: {
+        'Content-Type': req.get('Content-Type'),
+        Referer: req.get('Referer'),
+        'User-Agent': req.get('User-Agent')
+      }
+    };
     try {
-      const result = await getWFONameMatch(req.query.name, req.query['exclude-deprecated'], wfoAPI)
-      console.log(req.method, req.url, result.status)
-      res.statusMessage = result.message;
-      res.status(result.status).json(result.results)
+      const httpResponse = await controller(httpRequest);
+      if (httpResponse.headers) {
+        res.set(httpResponse.headers);
+      }
+      res.status(httpResponse.statusCode).json(httpResponse.body);
+    } catch (e) {
+      console.error('Express callback error:', e.message);
+      res.status(500).json({ error: 'An unknown error occurred.' });
     }
-    catch(err) {
-      console.log(req.method, req.url, 500, err.message)
-      res.status(500).send(err.message)
-    }
-    
-  }
-})
+  };
+}
 
-// app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDoc))
+app.get('/match', cache(), makeExpressCallback(getWFONameMatch));
 
-app.get('/names/:wfoid', cache(), async (req, res) => {
+app.get('/names/:wfoid', cache(), makeExpressCallback(getWFONameByID));
 
-  if (!req.params.wfoid || ! req.params.wfoid.trim()) {
-    res.send('WFO ID is required')
-  } 
-  else if (!/^wfo-\d{10}$/.test(req.params.wfoid)) {
-    res.status(400).send('Oops, invalid WFO ID! Please try again')
-  }
-  else {
-
-    try {
-      const result = await getWFONameByID(req.params.wfoid.trim(), wfoAPI)
-      console.log(req.method, req.url, result.status)
-      res.statusMessage = result.message;
-      res.status(result.status).json(result.results)
-    }
-    catch(err) {
-      console.log(req.method, req.url, 500, err.message)
-      res.status(500).send(err.message)
-    }
-  }
-})
-
-
+app.get('/', (req, res) => {
+  res.send('Welcome to the WFO GraphQL API proxy. Options are /match?name=[insert name] and /names/[wfo-id]');
+});
 
 app.listen(port, () => {
-  console.log(`WFO GraphQL API proxy running on http://localhost:${port}`)
-})
+  console.log(`WFO GraphQL API proxy running on http://localhost:${port}`);
+});
