@@ -4,7 +4,7 @@ process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 
 import express from "express";
 import apicache from 'apicache';
-import { getWFONameByID, getWFONameMatch } from "./controllers/index.js";
+import { getWFONameByID, getWFONameMatch, getWFOSynonymsByID } from "./controllers/index.js";
 
 const port = 3000;
 const app = express();
@@ -43,8 +43,10 @@ app.get('/match', cache(), makeExpressCallback(getWFONameMatch));
 
 app.get('/names/:wfoid', cache(), makeExpressCallback(getWFONameByID));
 
+app.get('/synonyms/:wfoid', cache(), makeExpressCallback(getWFOSynonymsByID));
+
 app.get('/', (req, res) => {
-  res.send('Welcome to the WFO GraphQL API proxy. Options are /match?name=[insert name] and /names/[wfo-id]');
+  res.send('Welcome to the WFO GraphQL API proxy. Options are /match?name=[insert name], /names/[wfo-id] and /synonyms/[wfo-id]?version=[version]');
 });
 
 app.listen(port, () => {

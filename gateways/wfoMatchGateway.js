@@ -91,6 +91,9 @@ export async function getWFONameMatch(namestring, excludeDeprecated, url) {
       }
     })
 
+    //sort on scores descending (best matches first)
+    mappedResults.sort((a, b) => b.score - a.score)
+
     return {
       status: 200,
       message: gqlres.statusText,
